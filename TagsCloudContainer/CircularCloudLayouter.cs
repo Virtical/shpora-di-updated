@@ -8,16 +8,15 @@ public class CircularCloudLayouter
 {
     public readonly Point Center;
     public List<Tag> Tags { get; }
-    public Color? BackgroundColor;
-    public Color? TextColor;
-    private readonly ISpiral spiral;
-    private string? fontName;
+    public Color? BackgroundColor { get; private set; }
+    public Color? TextColor { get; private set; }
+    public string? FontName { get; private set; }
+    public ISpiral Spiral { get; set; } = null!;
 
-    public CircularCloudLayouter(Point center, ISpiral spiral)
+    public CircularCloudLayouter(Point center)
     {
         Center = center;
         Tags = [];
-        this.spiral = spiral;
     }
 
     public CircularCloudLayouterVisualizer CreateView(int width, int height)
@@ -29,7 +28,7 @@ public class CircularCloudLayouter
     {
         if (font.FontExists())
         {
-            fontName = font;
+            FontName = font;
         }
 
         return this;
@@ -61,14 +60,19 @@ public class CircularCloudLayouter
 
     public Rectangle PutNextTag(string text, int count)
     {
-        var font = new Font(fontName ?? "Arial", count * 5 + 10);
+        if (count < 1)
+        {
+            throw new ArgumentException(nameof(count));
+        }
+            
+        var font = new Font(FontName ?? "Arial", count * 5 + 10);
         var rectangleSize = TextRenderer.MeasureText(text, font);
         
         Rectangle newRectangle;
 
         do
         {
-            var location = spiral.GetNextPoint();
+            var location = Spiral.GetNextPoint();
             location.Offset(-rectangleSize.Width / 2, rectangleSize.Height / 2);
             newRectangle = new Rectangle(location, rectangleSize);
         }
