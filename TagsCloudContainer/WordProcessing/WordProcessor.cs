@@ -5,13 +5,15 @@ namespace TagsCloudContainer;
 public class WordProcessor
 {
     private static readonly string excludedWordsPath = Path.Combine("..", "..", "..", "WordProcessing", "excluded_words.txt");
-    private List<string> words;
+    private List<string> words = [];
     private HashSet<string> excludedWords = [];
     private bool enableDefaultExclude = true;
 
     public WordProcessor GetWordsForCloud(Func<string> wordsFunc)
     {
         var wordsPath = wordsFunc.Invoke();
+
+        if (!File.Exists(wordsPath)) return this;
         
         var extension = Path.GetExtension(wordsPath).ToLower();
 
@@ -46,13 +48,17 @@ public class WordProcessor
     public WordProcessor ExcludeWords(Func<string> excludedWordsFunc)
     {
         var wordsPath = excludedWordsFunc.Invoke();
-
-        if (File.Exists(wordsPath))
+        
+        if (!File.Exists(wordsPath)) return this;
+        
+        var extension = Path.GetExtension(wordsPath).ToLower();
+        
+        excludedWords = extension switch
         {
-            excludedWords = File.ReadAllLines(wordsPath)
-                .Select(word => word.ToLower())
-                .ToHashSet();
-        }
+            ".txt" => GetWordsFromTxt(wordsPath).ToHashSet(),
+            ".doc" or ".docx" => GetWordsFromDoc(wordsPath).ToHashSet(),
+            _ => excludedWords
+        };
 
         return this;
     }
