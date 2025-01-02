@@ -1,45 +1,37 @@
 ﻿using System.Drawing;
 using Autofac;
+using static TagsCloudContainer.App;
 
 namespace TagsCloudContainer;
 
-public class Program
+public static class Program
 {
     public static void Main()
     {
-        var fileName = App.GetFileNameFromUser();
+        var imageDimensions = GetImageDimensionsFromUser("Введите размер изображения (по умолчанию W: 1000, H: 1000):");
         
-        var (width, height) = App.GetImageDimensionsFromUser();
-        var center = new Point(width / 2, height / 2);
+        var container = ContainerConfig.Configure(imageDimensions.Center);
         
-        var builder = new ContainerBuilder();
-        
-        builder.RegisterType<ArchimedeanSpiral>()
-            .As<ISpiral>()
-            .WithParameter("center", center);
-        
-        builder.RegisterType<CircularCloudLayouter>()
-            .AsSelf()
-            .WithParameter("center", center)
-            .PropertiesAutowired();
-        
-        var container = builder.Build();
-        
-        var fontName = App.GetFontNameFromUser();
-        var backgroundColor = App.GetColorFromUser("Введите цвет фона (например, Red, Blue, Aqua): ");
-        var textColor = App.GetColorFromUser("Введите цвет текста (например, Navy, Black, White): ");
-        
-        var words = FileParser.Parse(fileName);
+        var fileParser = new WordProcessor();
+        var words = fileParser
+            .GetWordsForCloud(() => GetFileNameFromUser("Введите название файла с текстом:"))
+            .ExcludeWords(() => GetExcludedWordsFileNameFromUser("Введите название файла с исключёнными словами:"))
+            .DisableDefaultExclude()
+            .ToDictionary();
 
         using var scope = container.BeginLifetimeScope();
         
         var layouter = scope.Resolve<CircularCloudLayouter>();
 
         layouter
-            .SetFontName(fontName)
-            .SetBackgroundColor(backgroundColor)
-            .SetTextColor(textColor)
+            .SetFontName(() => GetFontNameFromUser("Введите название шрифта (по умолчанию Arial):"))
+            .SetBackgroundColor(() => GetColorsFromUser("Введите цвет фона (по умолчанию White):", Color.White))
+            .SetTextColor(() => GetColorsFromUser("Введите цвет текста (по умолчанию Black):", Color.Black))
             .PutTags(words)
-            .CreateView(width, height).SaveImage("text_as_rectangle.png");
+            .CreateView(imageDimensions.Width, imageDimensions.Height)
+                .SaveImage("cloud.jpeg")
+                .SaveImage("cloud.png")
+                .SaveImage("cloud.bmp")
+                .SaveImage("cloud.tiff");
     }
 }

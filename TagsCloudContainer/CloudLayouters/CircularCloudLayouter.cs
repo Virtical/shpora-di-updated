@@ -1,5 +1,4 @@
 ﻿using System.Drawing;
-using System.Windows.Forms;
 using TagsCloudContainer.Extensions;
 
 namespace TagsCloudContainer;
@@ -8,9 +7,9 @@ public class CircularCloudLayouter
 {
     public readonly Point Center;
     public List<Tag> Tags { get; }
-    public Color? BackgroundColor { get; private set; }
-    public Color? TextColor { get; private set; }
-    public string? FontName { get; private set; }
+    public Func<(Color Primary, Color? Secondary)>? BackgroundColor { get; private set; }
+    public Func<(Color Primary, Color? Secondary)>? TextColor { get; private set; }
+    private string? FontName { get; set; }
     public ISpiral Spiral { get; set; } = null!;
 
     public CircularCloudLayouter(Point center)
@@ -24,25 +23,21 @@ public class CircularCloudLayouter
         return new CircularCloudLayouterVisualizer(this, new Size(width, height));
     }
 
-    public CircularCloudLayouter SetFontName(string font)
+    public CircularCloudLayouter SetFontName(Func<string> fontFunc)
     {
-        if (font.FontExists())
-        {
-            FontName = font;
-        }
-
+        FontName = fontFunc.Invoke();
         return this;
     }
 
-    public CircularCloudLayouter SetBackgroundColor(Color color)
+    public CircularCloudLayouter SetBackgroundColor(Func<(Color Primary, Color? Secondary)> colorFunc)
     {
-        BackgroundColor = color;
+        BackgroundColor = colorFunc;
         return this;
     }
     
-    public CircularCloudLayouter SetTextColor(Color color)
+    public CircularCloudLayouter SetTextColor(Func<(Color Primary, Color? Secondary)> colorFunc)
     {
-        TextColor = color;
+        TextColor = colorFunc;
         return this;
     }
 
@@ -66,7 +61,16 @@ public class CircularCloudLayouter
         }
             
         var font = new Font(FontName ?? "Arial", count * 5 + 10);
-        var rectangleSize = TextRenderer.MeasureText(text, font);
+        Size rectangleSize;
+        using (var bitmap = new Bitmap(1, 1))
+        using (var graphics = Graphics.FromImage(bitmap))
+        {
+            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+            var format = new StringFormat { FormatFlags = StringFormatFlags.MeasureTrailingSpaces };
+            
+            var rectangleFSize = graphics.MeasureString(text, font, int.MaxValue, format);
+            rectangleSize = new Size((int)rectangleFSize.Width + 2, (int)rectangleFSize.Height + 2);
+        }
         
         Rectangle newRectangle;
 

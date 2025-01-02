@@ -1,5 +1,4 @@
 ﻿using System.Drawing;
-using System.Windows.Forms;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -40,12 +39,19 @@ public class CircularCloudContainerTests
     {
         var font = new Font("Arial", 25);
         const string text = "text";
-        var expectsdRectangleSize = TextRenderer.MeasureText(text, font);
+       
+        SizeF expectsdRectangleSize;
+        using (var bitmap = new Bitmap(1, 1))
+        using (var graphics = Graphics.FromImage(bitmap))
+        {
+            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+            expectsdRectangleSize = graphics.MeasureString(text, font);
+        }
 
         circularCloudLayouter.PutNextTag(text, 3);
         var actualRectangleSize = circularCloudLayouter.Size();
 
-        actualRectangleSize.Should().Be(expectsdRectangleSize);
+        actualRectangleSize.Should().Be(expectsdRectangleSize.ToSize());
     }
 
     [Test]
