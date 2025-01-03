@@ -1,92 +1,60 @@
 ﻿using Aspose.Words;
+using TagsCloudContainer.ExcludedWordsProvider;
 
 namespace TagsCloudContainer;
 
 public class WordProcessor
 {
-    private static readonly string excludedWordsPath = Path.Combine("..", "..", "..", "WordProcessing", "excluded_words.txt");
-    private List<string> words = [];
-    private HashSet<string> excludedWords = [];
-    private bool enableDefaultExclude = true;
-
-    public WordProcessor GetWordsForCloud(Func<string> wordsFunc)
+    private readonly List<string> words = [];
+    private readonly HashSet<string> excludedWords = [];
+    private readonly Dictionary<string, IParser> parsers;
+    private readonly ExcludedWordsSettings settings;
+    
+    public WordProcessor(Dictionary<string, IParser> handlers, ExcludedWordsSettings settings)
     {
-        var wordsPath = wordsFunc.Invoke();
+        parsers = handlers ?? throw new ArgumentNullException(nameof(handlers));
+        this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
+    }
 
+    public WordProcessor GetWordsForCloud(string wordsPath)
+    {
         if (!File.Exists(wordsPath)) return this;
-        
-        var extension = Path.GetExtension(wordsPath).ToLower();
 
-        words = extension switch
+        var extension = Path.GetExtension(wordsPath).ToLower();
+        if (parsers.TryGetValue(extension, out var parser))
         {
-            ".txt" => GetWordsFromTxt(wordsPath),
-            ".doc" or ".docx" => GetWordsFromDoc(wordsPath),
-            _ => words
-        };
+            words.AddRange(parser.GetWords(wordsPath));
+        }
 
         return this;
     }
-
-    private static List<string> GetWordsFromDoc(string filePath)
-    {
-        var doc = new Document(filePath);
-        var content = doc.GetText();
-        return content.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(w => w.ToLower())
-            .Skip(1)
-            .SkipLast(1)
-            .ToList();
-    }
-
-    private static List<string> GetWordsFromTxt(string filePath)
-    {
-        return File.ReadAllLines(filePath)
-            .Select(word => word.ToLower())
-            .ToList();
-    }
     
-    public WordProcessor ExcludeWords(Func<string> excludedWordsFunc)
+    public WordProcessor ExcludeWords(IExcludedWordsProvider provider)
     {
-        var wordsPath = excludedWordsFunc.Invoke();
-        
-        if (!File.Exists(wordsPath)) return this;
-        
-        var extension = Path.GetExtension(wordsPath).ToLower();
-        
-        excludedWords = extension switch
-        {
-            ".txt" => GetWordsFromTxt(wordsPath).ToHashSet(),
-            ".doc" or ".docx" => GetWordsFromDoc(wordsPath).ToHashSet(),
-            _ => excludedWords
-        };
-
+        excludedWords.UnionWith(provider.GetExcludedWords());
         return this;
     }
 
     public WordProcessor DisableDefaultExclude()
     {
-        enableDefaultExclude = false;
+        settings.EnableDefaultExclude = false;
         return this;
     }
 
     public Dictionary<string, int> ToDictionary()
     {
-        if (enableDefaultExclude)
+        if (settings.EnableDefaultExclude)
         {
-            var newExcludedWords = File.ReadAllLines(excludedWordsPath)
+            var defaultExcludedWords = File.ReadAllLines(settings.DefaultExcludedWordsPath)
                 .Select(word => word.ToLower())
                 .ToHashSet();
             
-            excludedWords = excludedWords
-                .Concat(newExcludedWords)
-                .ToHashSet();
+            excludedWords.UnionWith(defaultExcludedWords);
         }
         
-        var wordCount = words
+        return words
             .Where(word => !excludedWords.Contains(word))
             .GroupBy(word => word)
             .ToDictionary(group => group.Key, group => group.Count());
-        
-        return wordCount;
     }
 }

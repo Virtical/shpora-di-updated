@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Drawing.Drawing2D;
+using TagsCloudContainer.CloudLayouters;
 
 namespace TagsCloudContainer;
 
@@ -7,15 +8,11 @@ public class CircularCloudLayouterVisualizer
 {
     private CircularCloudLayouter layouter;
     private Size size;
-    private (Color Primary, Color? Secondary)? backgroudColor;
-    private (Color Primary, Color? Secondary)? textColor;
 
     public CircularCloudLayouterVisualizer(CircularCloudLayouter layouter, Size bitmapSize)
     {
         this.layouter = layouter;
         size = bitmapSize;
-        backgroudColor = layouter.BackgroundColor?.Invoke();
-        textColor = layouter.TextColor?.Invoke();
     }
     
     public CircularCloudLayouterVisualizer SaveImage(string filePath)
@@ -23,16 +20,16 @@ public class CircularCloudLayouterVisualizer
         using var bitmap = new Bitmap(size.Width, size.Height);
         using var graphics = Graphics.FromImage(bitmap);
 
-        graphics.Clear(backgroudColor?.Primary ?? Color.White);
+        graphics.Clear(layouter.BackgroundColor?.Primary ?? Color.White);
 
-        if (backgroudColor?.Secondary != null)
+        if (layouter.BackgroundColor?.Secondary != null)
         {
             var bounds = new Rectangle(0, 0, size.Width, size.Height);
             
             using var gradientBrush = new LinearGradientBrush(
                 bounds,
-                backgroudColor?.Primary ?? Color.White,
-                backgroudColor?.Secondary ?? Color.White,
+                layouter.BackgroundColor?.Primary ?? Color.White,
+                layouter.BackgroundColor?.Secondary ?? Color.White,
                 LinearGradientMode.Horizontal);
 
             graphics.FillRectangle(gradientBrush, bounds);
@@ -45,19 +42,19 @@ public class CircularCloudLayouterVisualizer
         {
             rectangle.Rectangle.Offset(offsetBitmap);
 
-            if (textColor?.Secondary != null)
+            if (layouter.TextColor?.Secondary != null)
             {
                 var gradientBrush = new LinearGradientBrush(
                     rectangle.Rectangle,
-                    textColor?.Primary ?? Color.Blue,
-                    textColor?.Secondary ?? Color.Red,
+                    layouter.TextColor?.Primary ?? Color.Blue,
+                    layouter.TextColor?.Secondary ?? Color.Red,
                     LinearGradientMode.Horizontal);
                 
                 graphics.DrawString(rectangle.Text, rectangle.Font, gradientBrush, rectangle.Rectangle);
             }
             else
             {
-                var brush = new SolidBrush(textColor?.Primary ?? Color.Black);
+                var brush = new SolidBrush(layouter.TextColor?.Primary ?? Color.Black);
                 graphics.DrawString(rectangle.Text, rectangle.Font, brush, rectangle.Rectangle);
             }
         }

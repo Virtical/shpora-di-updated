@@ -1,6 +1,8 @@
 ﻿using System.Drawing;
 using FluentAssertions;
 using NUnit.Framework;
+using TagsCloudContainer.CloudLayouters;
+using TagsCloudContainer.Extensions;
 
 namespace TagsCloudContainer.Tests;
 
@@ -12,9 +14,8 @@ public class CircularCloudContainerTests
     [SetUp]
     public void Setup()
     {
-        circularCloudLayouter = new CircularCloudLayouter(Point.Empty);
         var spiral = new ArchimedeanSpiral(Point.Empty);
-        circularCloudLayouter.Spiral = spiral;
+        circularCloudLayouter = new CircularCloudLayouter(Point.Empty, spiral);
     }
     
     [Test]
@@ -29,7 +30,7 @@ public class CircularCloudContainerTests
     [Test]
     public void CloudSizeIsZero_WhenInitialized()
     {
-        var actualSize = circularCloudLayouter.Size();
+        var actualSize = circularCloudLayouter.Tags.CalculateSize();
 
         actualSize.Should().Be(Size.Empty);
     }
@@ -49,7 +50,7 @@ public class CircularCloudContainerTests
         }
 
         circularCloudLayouter.PutNextTag(text, 3);
-        var actualRectangleSize = circularCloudLayouter.Size();
+        var actualRectangleSize = circularCloudLayouter.Tags.CalculateSize();
 
         actualRectangleSize.Should().Be(expectsdRectangleSize.ToSize());
     }
@@ -62,7 +63,7 @@ public class CircularCloudContainerTests
             circularCloudLayouter.PutNextTag("test", 4);
         }
 
-        var actualSize = circularCloudLayouter.Size();
+        var actualSize = circularCloudLayouter.Tags.CalculateSize();
         var aspectRatio = (double)actualSize.Width / actualSize.Height;
 
         aspectRatio.Should().BeInRange(0.5, 2.0);

@@ -8,20 +8,40 @@ public static class App
     private const string DefaultCommand = "default";
     private const string ExitCommand = "exit";
 
+    private static int defaultImageWidth = 1000;
+    private static int defaultImageHeight = 1000;
+    private static string defaultFontName = "Arial";
+    private static Color defaultBackgroundColor = Color.White;
+    private static Color defaultTextColor = Color.Black;
+    private static string defaultWordsFilePath = Path.Combine("..", "..", "..", "WordProcessing", "cloud.txt");
+    private static string defaultExcludedWordsFilePath = Path.Combine("..", "..", "..", "WordProcessing", "excluded_words.txt");
+
+    private static readonly string imageDimensionsPrompt = $"Введите размер изображения (по умолчанию W: {defaultImageWidth}, H: {defaultImageHeight}):";
+    private static readonly string fileNamePrompt = "Введите название файла с текстом:";
+    private static readonly string excludedWordsFileNamePrompt = "Введите название файла с исключёнными словами:";
+    private static readonly string fontNamePrompt = $"Введите название шрифта (по умолчанию {defaultFontName}):";
+    private static readonly string backgroundColorPrompt = $"Введите цвет фона (по умолчанию {defaultBackgroundColor.Name}):";
+    private static readonly string textColorPrompt = $"Введите цвет текста (по умолчанию {defaultTextColor.Name}):";
+
+    public static string GetDefaultExcludedWordsFilePath()
+    {
+        return defaultExcludedWordsFilePath;
+    }
+
     private static void ShowExitMessage()
     {
         Console.WriteLine($"Чтобы выйти из программы, напишите \"{ExitCommand}\", чтобы использовать значение по умолчанию, напишите \"{DefaultCommand}\"");
         Console.WriteLine();
     }
     
-    public static string GetFileNameFromUser(string prompt)
+    public static string GetFileNameFromUser()
     {
-        return GetFileName(prompt, Path.Combine("..", "..", "..", "WordProcessing", "cloud.txt"));
+        return GetFileName(fileNamePrompt, defaultWordsFilePath);
     }
 
-    public static string GetExcludedWordsFileNameFromUser(string prompt)
+    public static string GetExcludedWordsFileNameFromUser()
     {
-        return GetFileName(prompt, string.Empty);
+        return GetFileName(excludedWordsFileNamePrompt, string.Empty);
     }
 
     private static string GetFileName(string prompt, string defaultPath)
@@ -55,13 +75,13 @@ public static class App
         }
     }
     
-    public static ImageDimensions GetImageDimensionsFromUser(string prompt)
+    public static ImageDimensions GetImageDimensionsFromUser()
     {
         ShowExitMessage();
         
         while (true)
         {
-            Console.WriteLine(prompt);
+            Console.WriteLine(imageDimensionsPrompt);
             Console.WriteLine("(в формате \"ширина высота\")");
             var input = Console.ReadLine();
             var size = input?.Split(' ');
@@ -82,7 +102,7 @@ public static class App
                     break;
                 case DefaultCommand:
                     Console.Clear();
-                    return new ImageDimensions(1000, 1000);
+                    return new ImageDimensions(defaultImageWidth, defaultImageHeight);
             }
             
             Console.Clear();
@@ -91,13 +111,13 @@ public static class App
         }
     }
     
-    public static string GetFontNameFromUser(string prompt)
+    public static string GetFontNameFromUser()
     {
         ShowExitMessage();
         
         while (true)
         {
-            Console.WriteLine(prompt);
+            Console.WriteLine(fontNamePrompt);
             var input = Console.ReadLine();
 
             if (input!.FontExists())
@@ -113,7 +133,7 @@ public static class App
                     break;
                 case DefaultCommand:
                     Console.Clear();
-                    return "Arial";
+                    return defaultFontName;
             }
             
             Console.Clear();
@@ -121,8 +141,18 @@ public static class App
             Console.WriteLine("Шрифт не найден. Попробуйте снова.");
         }
     }
+
+    public static (Color Primary, Color? Secondary) GetBackgroundColorsFromUser()
+    {
+        return GetColorsFromUser(backgroundColorPrompt, defaultBackgroundColor);
+    }
     
-    public static (Color Primary, Color? Secondary) GetColorsFromUser(string prompt, Color defaultColor)
+    public static (Color Primary, Color? Secondary) GetTextColorsFromUser()
+    {
+        return GetColorsFromUser(textColorPrompt, defaultTextColor);
+    }
+    
+    private static (Color Primary, Color? Secondary) GetColorsFromUser(string prompt, Color defaultColor)
     {
         ShowExitMessage();
 

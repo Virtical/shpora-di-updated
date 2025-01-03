@@ -1,5 +1,8 @@
-﻿using System.Drawing;
-using Autofac;
+﻿using Autofac;
+using TagsCloudContainer.CloudLayouters;
+using TagsCloudContainer.ExcludedWordsProvider;
+using TagsCloudContainer.Settings;
+using TagsCloudContainer.WordProcessing.ExcludedWordsProvider;
 using static TagsCloudContainer.App;
 
 namespace TagsCloudContainer;
@@ -8,27 +11,29 @@ public static class Program
 {
     public static void Main()
     {
-        var imageDimensions = GetImageDimensionsFromUser("Введите размер изображения (по умолчанию W: 1000, H: 1000):");
-        
-        var container = ContainerConfig.Configure(imageDimensions.Center);
-        
-        var fileParser = new WordProcessor();
-        var words = fileParser
-            .GetWordsForCloud(() => GetFileNameFromUser("Введите название файла с текстом:"))
-            .ExcludeWords(() => GetExcludedWordsFileNameFromUser("Введите название файла с исключёнными словами:"))
-            .DisableDefaultExclude()
-            .ToDictionary();
-
-        using var scope = container.BeginLifetimeScope();
+        using var scope = ContainerConfig.Configure().BeginLifetimeScope();
         
         var layouter = scope.Resolve<CircularCloudLayouter>();
+        var imageSettings = scope.Resolve<ImageSettings>();
+        var fontSettings = scope.Resolve<FontSettings>();
+        var colorSettings = scope.Resolve<ColorSettings>();
+        var filesSettings = scope.Resolve<FilesSettings>();
+
+        var wordProcessor = scope.Resolve<WordProcessorFactory>().Create();
+        var fileExcludedWordsProvider = scope.Resolve<ExcludedWordsProviderFactory>().Create();
+        
+        var words = wordProcessor
+            .GetWordsForCloud(filesSettings.Words)
+            .ExcludeWords(fileExcludedWordsProvider)
+            .DisableDefaultExclude()
+            .ToDictionary();;
 
         layouter
-            .SetFontName(() => GetFontNameFromUser("Введите название шрифта (по умолчанию Arial):"))
-            .SetBackgroundColor(() => GetColorsFromUser("Введите цвет фона (по умолчанию White):", Color.White))
-            .SetTextColor(() => GetColorsFromUser("Введите цвет текста (по умолчанию Black):", Color.Black))
+            .SetFontName(fontSettings.FontName)
+            .SetBackgroundColor(colorSettings.BackgroundColor)
+            .SetTextColor(colorSettings.TextColor)
             .PutTags(words)
-            .CreateView(imageDimensions.Width, imageDimensions.Height)
+            .CreateView(imageSettings.Width, imageSettings.Height)
                 .SaveImage("cloud.jpeg")
                 .SaveImage("cloud.png")
                 .SaveImage("cloud.bmp")
